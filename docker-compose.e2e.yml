@@ -1,0 +1,38 @@
+# Local verification overrides ONLY.
+#
+# The host already runs Grafana on :3000 and Portainer on :8000, so this file
+# remaps the two published web ports for the end-to-end run and pins the AI
+# provider to the built-in `mock` provider (no real LLM key is available on this
+# host). It is not needed on a clean host:
+#
+#   docker compose up -d
+#
+# Run the E2E stack with:
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d
+#
+services:
+  backend:
+    ports: !override
+      - "8100:8000"
+    environment:
+      AI_PROVIDER: mock
+      # Browser origin for the dashboard remapped to :3100.
+      CORS_ORIGINS: http://localhost:3100,http://43.133.154.242:3100
+
+  worker:
+    environment:
+      AI_PROVIDER: mock
+
+  telegram-bot:
+    environment:
+      AI_PROVIDER: mock
+      FRONTEND_BASE_URL: http://43.133.154.242:3100
+
+  frontend:
+    ports: !override
+      - "3100:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://43.133.154.242:8100
+      # Server components fetch from inside the compose network, where the API
+      # is reachable as `backend:8000` and `localhost:8100` is not.
+      API_INTERNAL_BASE_URL: http://backend:8000
