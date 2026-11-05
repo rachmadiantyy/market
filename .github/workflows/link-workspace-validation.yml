@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
@@ -27,8 +27,8 @@ jobs:
           NEXT_TELEMETRY_DISABLED: "1"
       - name: Install browser test tools
         run: |
-          npm install --no-save --package-lock=false playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npm install --prefix /tmp/affiliate-browser --no-save playwright@1.56.1
+          /tmp/affiliate-browser/node_modules/.bin/playwright install --with-deps chromium
       - name: Desktop and mobile interaction checks
         run: |
           npm run start > /tmp/affiliate-preview.log 2>&1 &
@@ -36,7 +36,7 @@ jobs:
             if curl -fsS http://127.0.0.1:3000 > /dev/null; then break; fi
             sleep 1
           done
-          node tests/workspace-browser.cjs
+          NODE_PATH=/tmp/affiliate-browser/node_modules node tests/workspace-browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
