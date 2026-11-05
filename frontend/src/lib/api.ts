@@ -80,12 +80,54 @@ export interface AnalyticsSummary {
   queue_depth: number;
 }
 
+export interface ProductMedia {
+  id: string;
+  media_type: "image" | "video";
+  file_path: string;
+  mime_type: string;
+  file_size: number;
+  source: string;
+  url: string;
+  created_at: string;
+}
+
+export interface GeneratedMedia {
+  id: string;
+  product_id: string;
+  source_media_id: string | null;
+  type: "image" | "video";
+  provider: string;
+  model: string | null;
+  preset: string | null;
+  prompt: string;
+  storage_key: string | null;
+  mime_type: string;
+  file_size: number;
+  width: number;
+  height: number;
+  status: GenerationStatus;
+  error_message: string | null;
+  url: string;
+  created_at: string;
+  completed_at: string | null;
+  // --- video metadata (populated when type === "video") ---
+  provider_job_id?: string | null;
+  duration_seconds?: number;
+  aspect_ratio?: string | null;
+}
+
 export interface Product {
   id: string;
   name: string;
   status: string;
+  description?: string | null;
+  affiliate_url?: string | null;
   price: number | null;
   currency: string;
+  category?: string | null;
+  target_audience?: string | null;
+  media?: ProductMedia[];
+  generated_visuals?: GeneratedMedia[];
 }
 
 export type GenerationStatus = "queued" | "processing" | "completed" | "failed";
@@ -159,3 +201,130 @@ export const PLATFORM_LABELS: Record<AIPlatform, string> = {
   threads: "Threads",
   x: "X",
 };
+
+// --- Visual Generator API ---
+
+export interface VisualPreset {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface VisualGeneratePayload {
+  product_id: string;
+  source_media_id?: string | null;
+  preset_id: string;
+  custom_prompt?: string | null;
+  variations: number;
+}
+
+export function fetchVisualPresets(): Promise<VisualPreset[]> {
+  return apiSend<VisualPreset[]>("/visuals/presets", "GET");
+}
+
+export interface VisualProviderStatus {
+  provider: string;
+  model: string;
+  is_mock: boolean;
+  credentials: "SET" | "NOT SET";
+  supports_reference_image: boolean;
+  reference_enabled: boolean;
+  timeout_seconds: number;
+  max_retries: number;
+  r2_configured: boolean;
+}
+
+export function fetchVisualProviderStatus(): Promise<VisualProviderStatus> {
+  return apiSend<VisualProviderStatus>("/visuals/provider", "GET");
+}
+
+export function generateVisuals(
+  payload: VisualGeneratePayload
+): Promise<GeneratedMedia[]> {
+  return apiSend<GeneratedMedia[]>("/visuals/generate", "POST", payload);
+}
+
+export function fetchVisuals(productId?: string): Promise<GeneratedMedia[]> {
+  const query = productId ? `?product_id=${productId}` : "";
+  return apiSend<GeneratedMedia[]>(`/visuals${query}`, "GET");
+}
+
+export function deleteVisual(id: string): Promise<void> {
+  return apiSend<void>(`/visuals/${id}`, "DELETE");
+}
+
+export function regenerateVisual(id: string): Promise<GeneratedMedia> {
+  return apiSend<GeneratedMedia>(`/visuals/${id}/regenerate`, "POST");
+}
+
+// --- Video Generator API ---
+//
+// Mirrors the visuals API: same queue, same GeneratedMedia records, different
+// media type. Provider status never exposes a credential value.
+
+export interface VideoPreset {
+  id: string;
+  name: string;
+  description: string;
+  default_duration_seconds: number;
+  default_aspect_ratio: string;
+  supports_text_only: boolean;
+}
+
+export interface VideoProviderStatus {
+  provider: string;
+  model: string;
+  is_mock: boolean;
+  credentials: "SET" | "NOT SET";
+  supports_text_to_video: boolean;
+  supports_image_to_video: boolean;
+  supports_audio: boolean;
+  supported_durations: number[];
+  supported_aspect_ratios: string[];
+  default_resolution: number[];
+  contract_verified: boolean;
+  timeout_seconds: number;
+  poll_timeout_seconds: number;
+  max_retries: number;
+  default_duration_seconds: number;
+  max_duration_seconds: number;
+  r2_configured: boolean;
+}
+
+export interface VideoGeneratePayload {
+  product_id: string;
+  source_media_id?: string | null;
+  preset_id: string;
+  custom_prompt?: string | null;
+  variations?: number;
+  duration_seconds?: number;
+  aspect_ratio?: string;
+}
+
+export function fetchVideoPresets(): Promise<VideoPreset[]> {
+  return apiSend<VideoPreset[]>("/videos/presets", "GET");
+}
+
+export function fetchVideoProviderStatus(): Promise<VideoProviderStatus> {
+  return apiSend<VideoProviderStatus>("/videos/provider", "GET");
+}
+
+export function generateVideos(
+  payload: VideoGeneratePayload
+): Promise<GeneratedMedia[]> {
+  return apiSend<GeneratedMedia[]>("/videos/generate", "POST", payload);
+}
+
+export function fetchVideos(productId?: string): Promise<GeneratedMedia[]> {
+  const query = productId ? `?product_id=${productId}` : "";
+  return apiSend<GeneratedMedia[]>(`/videos${query}`, "GET");
+}
+
+export function deleteVideo(id: string): Promise<void> {
+  return apiSend<void>(`/videos/${id}`, "DELETE");
+}
+
+export function regenerateVideo(id: string): Promise<GeneratedMedia> {
+  return apiSend<GeneratedMedia>(`/videos/${id}/regenerate`, "POST");
+}
+

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import "./globals.css";
+import "./workspace.css";
 import { Nav } from "@/components/nav";
 
 export const metadata: Metadata = {
@@ -14,11 +15,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="id">
       <body>
         <div className="min-h-screen">
           <Nav />
-          <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+          <main className="lw-main" id="main-content" tabIndex={-1}>{children}</main>
         </div>
       </body>
     </html>

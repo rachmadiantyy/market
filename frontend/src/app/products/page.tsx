@@ -10,6 +10,15 @@ interface ProductMedia {
   url: string;
 }
 
+interface GeneratedMedia {
+  id: string;
+  type: "image" | "video";
+  preset: string | null;
+  status: string;
+  url: string;
+  duration_seconds?: number;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -22,6 +31,7 @@ interface Product {
   affiliate_url: string | null;
   description: string | null;
   media: ProductMedia[];
+  generated_visuals?: GeneratedMedia[];
 }
 
 function formatRupiah(value: number | null): string {
@@ -45,32 +55,88 @@ function mediaSrc(url: string): string {
   return url.startsWith("http") ? url : `${PUBLIC_API_BASE}${url}`;
 }
 
-function MediaGallery({ media }: { media: ProductMedia[] }) {
-  if (media.length === 0) {
+function MediaGallery({ media, visuals }: { media: ProductMedia[]; visuals?: GeneratedMedia[] }) {
+  // GeneratedMedia holds both images and videos; keep the two groups visually
+  // separate so original media, AI images and AI videos are never mixed.
+  const completed = (visuals || []).filter((v) => v.status === "completed" && v.url);
+  const completedVisuals = completed.filter((v) => v.type !== "video");
+  const completedVideos = completed.filter((v) => v.type === "video");
+
+  if (media.length === 0 && completed.length === 0) {
     return <span className="text-xs text-slate-400">No media</span>;
   }
   return (
-    <div className="flex flex-wrap gap-2">
-      {media.map((item) =>
-        item.media_type === "image" ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={item.id}
-            src={mediaSrc(item.url)}
-            alt=""
-            title={`${item.mime_type} · ${formatSize(item.file_size)}`}
-            className="h-14 w-14 rounded border border-slate-200 object-cover"
-          />
-        ) : (
-          <video
-            key={item.id}
-            src={mediaSrc(item.url)}
-            title={`${item.mime_type} · ${formatSize(item.file_size)}`}
-            className="h-14 w-14 rounded border border-slate-200 object-cover"
-            muted
-            preload="metadata"
-          />
-        ),
+    <div className="space-y-3">
+      {/* Original Source Media */}
+      <div>
+        <p className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase mb-1">
+          Original Media ({media.length})
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {media.map((item) =>
+            item.media_type === "image" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={item.id}
+                src={mediaSrc(item.url)}
+                alt=""
+                title={`Original · ${item.mime_type} · ${formatSize(item.file_size)}`}
+                className="h-12 w-12 rounded border border-slate-200 object-cover"
+              />
+            ) : (
+              <video
+                key={item.id}
+                src={mediaSrc(item.url)}
+                title={`Original Video · ${item.mime_type}`}
+                className="h-12 w-12 rounded border border-slate-200 object-cover"
+                muted
+                preload="metadata"
+              />
+            )
+          )}
+        </div>
+      </div>
+
+      {/* AI Generated Visuals */}
+      {completedVisuals.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold tracking-wider text-brand uppercase mb-1 flex items-center gap-1">
+            <span>✨ AI Visuals</span> ({completedVisuals.length})
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {completedVisuals.map((v) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={v.id}
+                src={mediaSrc(v.url)}
+                alt=""
+                title={`AI Visual (${v.preset || "custom"})`}
+                className="h-12 w-12 rounded border-2 border-purple-200 object-cover hover:border-purple-400 transition-colors"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* AI Generated Videos */}
+      {completedVideos.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold tracking-wider text-brand uppercase mb-1 flex items-center gap-1">
+            <span>🎬 AI Videos</span> ({completedVideos.length})
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {completedVideos.map((v) => (
+              <video
+                key={v.id}
+                src={mediaSrc(v.url)}
+                title={`AI Video (${v.preset || "custom"}) · ${v.duration_seconds || 0}s`}
+                className="h-12 w-12 rounded border-2 border-emerald-200 object-cover hover:border-emerald-400 transition-colors"
+                muted
+                preload="metadata"
+              />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -132,7 +198,7 @@ export default async function ProductsPage() {
                     ) : null}
                   </td>
                   <td className="p-3">
-                    <MediaGallery media={product.media} />
+                    <MediaGallery media={product.media} visuals={product.generated_visuals} />
                   </td>
                   <td className="p-3">{product.category ?? "-"}</td>
                   <td className="p-3">{formatRupiah(product.price)}</td>
