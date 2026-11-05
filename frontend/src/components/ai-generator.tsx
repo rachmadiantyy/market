@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Icon } from "@/components/icon";
 import { CopyButton } from "@/components/copy-button";
 import { StatusBadge, isActive } from "@/lib/status";
 import { formatJakartaTime } from "@/lib/time";
@@ -30,7 +31,7 @@ const POLL_INTERVAL_MS = 2000;
 const PROMPT_MAX = 2000;
 
 const inputClass =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:bg-slate-100";
+  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:bg-slate-100";
 
 export function AIGenerator({
   products,
@@ -148,11 +149,12 @@ export function AIGenerator({
   }, [generation]);
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[380px_1fr]">
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)]">
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 rounded-lg border border-slate-200 bg-white p-5"
+        className="panel min-w-0 space-y-5 p-5 sm:p-6"
       >
+        <div className="mb-2 border-b border-slate-100 pb-5"><h2 className="font-semibold">Pengaturan konten</h2><p className="mt-1 text-xs leading-5 text-slate-500">Sesuaikan format dengan pesan yang ingin kamu sampaikan.</p></div>
         <div>
           <label htmlFor="product" className="mb-1 block text-sm font-medium">
             Produk <span className="text-slate-400">(opsional)</span>
@@ -175,7 +177,7 @@ export function AIGenerator({
 
         <div>
           <label htmlFor="contentType" className="mb-1 block text-sm font-medium">
-            Content type
+            Jenis konten
           </label>
           <select
             id="contentType"
@@ -229,7 +231,7 @@ export function AIGenerator({
 
         <div>
           <label htmlFor="prompt" className="mb-1 block text-sm font-medium">
-            Prompt
+            Brief konten
           </label>
           <textarea
             id="prompt"
@@ -250,9 +252,9 @@ export function AIGenerator({
         <button
           type="submit"
           disabled={!canSubmit || promptTooLong}
-          className="w-full rounded-md bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="button-primary w-full disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {submitting ? "Mengirim..." : "Generate"}
+          <Icon name="sparkles" width="18" />{submitting ? "Mengirim..." : "Buat konten"}
         </button>
 
         {error && (
@@ -262,21 +264,18 @@ export function AIGenerator({
         )}
       </form>
 
-      <section className="space-y-4">
+      <section className="min-w-0 space-y-4" aria-live="polite" aria-label="Hasil generasi">
+        {submitting && <div className="panel p-8 text-center text-sm text-slate-500">Mengirim brief konten...</div>}
         {!generation && !submitting && (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
-            <p className="text-sm text-slate-500">
-              Belum ada hasil. Isi prompt lalu klik Generate.
-            </p>
-          </div>
+          <div className="empty-state min-h-96"><span className="icon-tile"><Icon name="sparkles" /></span><h2>Ruang untuk ide berikutnya</h2><p>Isi brief di samping, lalu klik Buat konten. Hasil variasi akan muncul di sini dan siap kamu salin.</p><div className="mt-6 flex flex-wrap justify-center gap-2">{["Caption", "Hook", "Script video"].map((label) => <span key={label} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">{label}</span>)}</div></div>
         )}
 
         {generation && (
-          <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-5">
+          <div className="panel space-y-4 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs text-slate-400">Generation ID</p>
-                <p className="font-mono text-xs text-slate-600">{generation.id}</p>
+                <p className="break-all font-mono text-xs text-slate-600">{generation.id}</p>
               </div>
               <StatusBadge status={generation.status} pulse={isActive(generation.status)} />
             </div>
@@ -304,7 +303,7 @@ export function AIGenerator({
               <div className="flex items-center gap-3 rounded-md bg-blue-50 p-3 text-sm text-blue-800">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
                 {generation.status === "queued"
-                  ? "Menunggu worker memproses..."
+                  ? "Menunggu giliran diproses..."
                   : "Sedang menghasilkan konten..."}
               </div>
             )}
@@ -329,7 +328,7 @@ export function AIGenerator({
                   <h2 className="text-sm font-semibold">
                     {generation.result.variations.length} variasi
                   </h2>
-                  <CopyButton text={allText} label="Copy semua" />
+                  <CopyButton text={allText} label="Salin semua" />
                 </div>
 
                 <ul className="space-y-3">
@@ -344,14 +343,14 @@ export function AIGenerator({
                         </span>
                         <CopyButton text={variation.text} />
                       </div>
-                      <p className="whitespace-pre-wrap text-sm text-slate-800">
+                      <p className="whitespace-pre-wrap break-words text-sm leading-7 text-slate-800">
                         {variation.text}
                       </p>
                     </li>
                   ))}
                 </ul>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => void submitGeneration()}

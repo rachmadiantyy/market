@@ -14,11 +14,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="id">
       <body>
         <div className="min-h-screen">
           <Nav />
-          <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+          <main id="main-content" className="workspace-main" tabIndex={-1}>{children}</main>
         </div>
       </body>
     </html>

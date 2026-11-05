@@ -8,19 +8,20 @@ export default async function AIDashboardPage({
 }: {
   searchParams: { generation?: string };
 }) {
-  const products = (await apiGet<Product[]>("/products")) ?? [];
+  const products = await apiGet<Product[]>("/products");
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">AI Content Generator</h1>
-        <p className="text-sm text-slate-500">
+        <p className="eyebrow">CONTENT STUDIO</p><h1 className="page-title">AI Content Generator</h1>
+        <p className="page-description">
           Buat caption, hook, script video pendek, deskripsi produk, atau CTA
           dalam beberapa variasi sekaligus.
         </p>
       </div>
 
-      <AIGenerator products={products} initialGenerationId={searchParams.generation} />
+      {products === null && <p className="notice" role="status">Daftar produk belum dapat dimuat. Kamu tetap bisa menulis brief tanpa memilih produk.</p>}
+      <AIGenerator products={products ?? []} initialGenerationId={searchParams.generation} />
     </div>
   );
 }
