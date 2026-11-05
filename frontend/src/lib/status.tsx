@@ -8,10 +8,10 @@ const CLASSES: Record<GenerationStatus, string> = {
 };
 
 const LABELS: Record<GenerationStatus, string> = {
-  queued: "Queued",
-  processing: "Processing",
-  completed: "Completed",
-  failed: "Failed",
+  queued: "Menunggu",
+  processing: "Diproses",
+  completed: "Selesai",
+  failed: "Gagal",
 };
 
 export function StatusBadge({

@@ -15,12 +15,12 @@ export default async function QueuePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Content Queue</h1>
+      <div><p className="eyebrow">ARSIP</p><h1 className="page-title">Konten tersimpan</h1><p className="page-description">Daftar item konten dari alur generasi sebelumnya.</p></div>
 
-      {items === null || items.length === 0 ? (
-        <p className="text-sm text-slate-500">
-          Queue is empty. Enqueue generation via{" "}
-          <code className="font-mono">POST /api/v1/content/generate</code>.
+      {items === null ? <p className="notice" role="status">Konten belum dapat dimuat. Silakan coba lagi nanti.</p> : items.length === 0 ? (
+        <p className="empty-state text-sm text-slate-500">
+          Belum ada konten tersimpan. Pantau generasi baru di{" "}
+          <a href="/dashboard/queue" className="mt-3 font-medium text-brand">Antrean konten →</a>
         </p>
       ) : (
         <ul className="space-y-2">

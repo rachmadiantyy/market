@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/icon";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { StatusBadge, isActive } from "@/lib/status";
@@ -13,10 +14,12 @@ import {
 
 const POLL_INTERVAL_MS = 3000;
 
-export function QueueTable({ initial }: { initial: AIGeneration[] }) {
+export function QueueTable({ initial, initialError = null }: { initial: AIGeneration[]; initialError?: string | null }) {
   const [rows, setRows] = useState<AIGeneration[]>(initial);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
+  const [filter, setFilter] = useState("all");
+  const filtered = rows.filter((row) => filter === "all" || row.status === filter);
   const [retrying, setRetrying] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -27,7 +30,7 @@ export function QueueTable({ initial }: { initial: AIGeneration[] }) {
       setRows(data);
       setError(null);
     } catch {
-      setError("Gagal memuat data antrian. Backend mungkin sedang tidak aktif.");
+      setError("Gagal memuat data antrian. Silakan coba lagi beberapa saat lagi.");
     }
   }, []);
 
@@ -68,32 +71,35 @@ export function QueueTable({ initial }: { initial: AIGeneration[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Content Queue</h1>
+      <div className="page-heading">
+        <div><p className="eyebrow">CONTENT WORKFLOW</p><h1 className="page-title">Antrean konten</h1><p className="page-description">Pantau progres generasi, buka hasil, atau coba ulang konten yang gagal.</p></div>
         <button
           type="button"
           onClick={() => void handleRefresh()}
           disabled={loading}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="button-secondary disabled:opacity-50"
         >
-          {loading ? "Memuat..." : "Refresh"}
+          {loading ? "Memuat..." : "Perbarui"}
         </button>
       </div>
+      <p className="text-xs text-slate-500">Menampilkan hingga 100 generasi terbaru. Antrean aktif diperbarui otomatis.</p>
+
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter status">{[["all", "Semua"], ["queued", "Menunggu"], ["processing", "Diproses"], ["completed", "Selesai"], ["failed", "Gagal"]].map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={`rounded-xl border px-4 py-2 text-xs font-medium ${filter === value ? "border-blue-200 bg-blue-50 text-brand" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{label} <span className="ml-1 opacity-70">{value === "all" ? rows.length : rows.filter((row) => row.status === value).length}</span></button>)}</div>
 
       {notice && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+        <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
           {notice}
         </p>
       )}
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}
         </p>
       )}
 
-      {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center">
-          <p className="text-sm text-slate-500">
+      {rows.length === 0 && error ? <div className="panel p-8 text-center text-sm text-slate-500">Data antrean belum tersedia. Tekan Perbarui untuk mencoba lagi.</div> : rows.length === 0 ? (
+        <div className="empty-state">
+          <span className="icon-tile"><Icon name="queue" /></span><h2>Belum ada antrean konten</h2><p>
             Belum ada generasi. Buat yang baru di halaman{" "}
             <a className="text-brand underline" href="/dashboard/ai">
               AI Generator
@@ -101,9 +107,10 @@ export function QueueTable({ initial }: { initial: AIGeneration[] }) {
             .
           </p>
         </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      ) : filtered.length === 0 ? <div className="empty-state"><Icon name="queue" /><h2>Tidak ada konten dengan status ini</h2><p>Pilih status lain untuk melihat konten.</p></div> : (
+        <div className="panel overflow-x-auto">
           <table className="w-full text-sm">
+            <caption className="sr-only">Daftar generasi konten dan statusnya</caption>
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="p-3">Generation ID</th>
@@ -116,7 +123,7 @@ export function QueueTable({ initial }: { initial: AIGeneration[] }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {filtered.map((row) => (
                 <tr key={row.id} className="border-t border-slate-100">
                   <td className="p-3 font-mono text-xs text-slate-600">
                     {row.id.slice(0, 8)}
@@ -138,7 +145,7 @@ export function QueueTable({ initial }: { initial: AIGeneration[] }) {
                         href={`/dashboard/ai?generation=${row.id}`}
                         className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
                       >
-                        View
+                        Lihat
                       </a>
                       {row.status === "failed" && (
                         <button
@@ -147,7 +154,7 @@ export function QueueTable({ initial }: { initial: AIGeneration[] }) {
                           disabled={retrying === row.id}
                           className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800 hover:bg-amber-100 disabled:opacity-50"
                         >
-                          {retrying === row.id ? "..." : "Retry"}
+                          {retrying === row.id ? "..." : "Coba ulang"}
                         </button>
                       )}
                     </div>
